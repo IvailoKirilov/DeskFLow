@@ -1,0 +1,32 @@
+@page "/vhod"
+@model LoginModel
+@{ ViewData["Title"] = "Вход"; }
+<header class="topbar">
+  <div class="shell topbar-inner"><partial name="_Brand" /></div>
+</header>
+<main id="main" class="shell login-grid">
+  <section class="login-intro" aria-label="DeskFlow">
+    <div class="login-copy">
+      <p class="login-headline">Твоето място<br>в офиса.</p>
+      <p>Избери бюро за следващото си посещение.</p>
+    </div>
+    <div class="login-pattern" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+  </section>
+  <section class="login-form">
+    <h1>Вход</h1>
+    <p class="muted">Въведете служебния си код.</p>
+    <form method="post">
+      <label for="Code">Код на служител</label>
+      <input asp-for="Code" placeholder="Напр. EMP-01" maxlength="24" required
+             autocomplete="username" autocapitalize="characters" spellcheck="false"
+             aria-describedby="@(Model.Error is null ? null : "login-error")" />
+      @if (Model.Error is not null)
+      {
+        <p class="notice error" id="login-error" role="alert">@Model.Error</p>
+      }
+      <button class="button primary" type="submit">Вход</button>
+    </form>
+  </section>
+</main>

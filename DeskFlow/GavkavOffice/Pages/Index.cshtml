@@ -1,0 +1,122 @@
+@page
+@model IndexModel
+@{
+  ViewData["Title"] = "Резервации";
+  var culture = IndexModel.Bulgarian;
+  var selected = OfficeStore.Iso(Model.SelectedDate);
+  var today = Model.TodayBooking;
+  var reserveLabel = Model.SelectedBooking is null ? "Резервирай" : "Смени";
+}
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <partial name="_Brand" />
+    <div class="account">
+      <span class="employee-code">@Model.Employee.Id</span>
+      <form method="post" asp-page-handler="Logout"><button class="button quiet" type="submit">Изход</button></form>
+    </div>
+  </div>
+</header>
+<main id="main" class="shell workspace">
+  <div class="workspace-heading">
+    <p class="eyebrow">РЕЗЕРВАЦИИ</p>
+    <h1>Избери бюро.</h1>
+    <p class="muted">Добре дошли, @Model.Employee.Name!</p>
+  </div>
+  @if (Model.Message is not null)
+  {
+    <p role="@(Model.IsError ? "alert" : "status")" class="notice @(Model.IsError ? "error" : "success")">@Model.Message</p>
+  }
+  <div class="workspace-grid">
+    <aside class="today-card" aria-labelledby="today-title" data-refresh-ms="@Model.RefreshAfterMs">
+      <div class="today-top"><h2 id="today-title">Днес в офиса</h2><span class="today-icon" aria-hidden="true"></span></div>
+      <p class="today-date">@Model.Today.ToString("dddd, d MMMM", culture)</p>
+      @if (today is null)
+      {
+        <p class="today-main">Нямате резервация за днес.</p>
+      }
+      else
+      {
+        <p class="today-main">@today.Desk.Number</p>
+        <p class="today-detail">@today.Desk.Zone</p>
+        @if (today.State == "Checked-in")
+        {
+          <p class="today-status">Присъствието е потвърдено</p>
+        }
+        else if (today.State == "Auto-Canceled")
+        {
+          <p class="today-status">Автоматично освободено в 10:00 ч.</p>
+        }
+        else if (Model.CanCheckIn)
+        {
+          <form method="post" asp-page-handler="CheckIn">
+            <input type="hidden" name="bookingId" value="@today.Id">
+            <input type="hidden" name="date" value="@selected">
+            <button class="button check-in" type="submit">Чекирай се</button>
+          </form>
+        }
+        else if (Model.CheckInStartsLater)
+        {
+          <p class="today-status">Чекирането започва в 07:00 ч.</p>
+        }
+      }
+      <p class="today-hours">Чекиране от 07:00 до 10:00 ч.</p>
+    </aside>
+    <section class="booking-panel" aria-labelledby="choose-date">
+      <h2 id="choose-date">Избери дата</h2>
+      <nav class="dates" aria-label="Следващите пет работни дни">
+        @foreach (var day in Model.Dates)
+        {
+          var isChosen = day == Model.SelectedDate;
+          <a asp-page="/Index" asp-route-date="@OfficeStore.Iso(day)" class="date @(isChosen ? "selected" : "")"
+             aria-current="@(isChosen ? "date" : null)"
+             aria-label="@day.ToString("dddd, d MMMM yyyy", culture)">
+            <span>@day.ToString("ddd", culture).TrimEnd('.')</span><strong>@day.ToString("dd", culture)</strong>
+            <span>@day.ToString("MMM", culture).TrimEnd('.')</span>
+          </a>
+        }
+      </nav>
+      @if (Model.SelectedBooking is { } booked)
+      {
+        <div class="selection">
+          <strong>Резервация за деня · @booked.Desk.Number</strong>
+          <span>@booked.Desk.Zone. Изборът на друго бюро заменя тази резервация.</span>
+        </div>
+      }
+      <div class="inventory-heading">
+        <div><h2 id="desks">Свободни бюра</h2><p>@Model.SelectedDate.ToString("dddd, d MMMM", culture)</p></div>
+        <span class="availability">@Model.Desks.Count <span>свободни</span></span>
+      </div>
+      @if (Model.Desks.Count == 0)
+      {
+        <p class="empty">Няма свободни бюра за тази дата. Изберете друг ден.</p>
+      }
+      else
+      {
+        <table class="desk-table" aria-labelledby="desks">
+          <thead><tr><th scope="col">Бюро</th><th scope="col">Зона</th><th scope="col"><span class="sr-only">Действие</span></th></tr></thead>
+          @foreach (var zone in Model.Desks.GroupBy(desk => desk.Zone))
+          {
+            <tbody>
+              @foreach (var desk in zone)
+              {
+                <tr>
+                  <th scope="row">@desk.Number</th>
+                  <td>@desk.Zone</td>
+                  <td>
+                    <form method="post" asp-page-handler="Reserve">
+                      <input type="hidden" name="deskId" value="@desk.Id">
+                      <input type="hidden" name="date" value="@selected">
+                      <button class="button reserve" type="submit" aria-label="@reserveLabel @desk.Number">
+                        @reserveLabel
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          }
+        </table>
+      }
+    </section>
+  </div>
+</main>
